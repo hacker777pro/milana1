@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Товар — Mi Lana</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .detail-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; background: #fff; padding: 30px; border-radius: 16px; margin-bottom: 40px; }
+        .detail-img { background: #fafafa; border-radius: 12px; overflow: hidden; height: 500px; display: flex; align-items: center; justify-content: center; }
+        .detail-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .detail-info h1 { margin: 0 0 10px; font-size: 28px; line-height: 1.2; }
+        .meta { color: #666; margin-bottom: 20px; font-size: 14px; }
+        .price { font-size: 28px; font-weight: 700; margin-bottom: 24px; color: var(--pink); }
+        .desc-block { margin-bottom: 20px; padding: 16px; background: #f9f9f9; border-radius: 10px; }
+        .desc-block h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; }
+        .desc-block p { margin: 0; line-height: 1.6; font-size: 14px; }
+        .reviews-sec { background: #fff; padding: 30px; border-radius: 16px; margin-top: 30px; }
+        .review-item { padding: 20px 0; border-bottom: 1px solid #eee; }
+        .review-head { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+        .stars { color: #FFC107; font-size: 16px; letter-spacing: 2px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; font-family: inherit; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; }
+        
+        /* Звёзды как на Золотом Яблоке */
+        .star-rating { 
+    display: flex; 
+    flex-direction: row-reverse;
+    gap: 4px; 
+    font-size: 24px;
+    justify-content: flex-end;
+}
+
+.star-rating input { 
+    display: none; 
+}
+
+.star-rating label { 
+    cursor: pointer; 
+    color: #ddd; 
+    transition: all 0.2s;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label { 
+    color: #FFC107; 
+}
+        
+        @media (max-width: 768px) {
+            .detail-wrap { grid-template-columns: 1fr; gap: 24px; }
+            .detail-img { height: 350px; }
+        }
+    </style>
+</head>
+<body style="background: var(--pink-light); margin: 0; padding: 20px;">
+
+<div style="max-width: 1200px; margin: 0 auto;">
+    <button onclick="window.location.href='index.html'" style="margin-bottom: 20px; background: #fff; border: 1px solid var(--border); padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: 600; color: var(--text); transition: 0.2s;">← Назад в каталог</button>
+    
+    <div class="detail-wrap" id="productDetail">Загрузка...</div>
+    
+    <div class="reviews-sec">
+        <h2 style="margin: 0 0 24px; font-size: 24px;">Отзывы</h2>
+        <div id="reviewsList"></div>
+        
+        <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border);">
+            <h3 style="margin: 0 0 20px; font-size: 20px;">Оставить отзыв</h3>
+            <div class="form-group"><input type="text" id="revName" placeholder="Ваше имя"></div>
+            <div class="form-group">
+                <label>Оценка</label>
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" checked />
+                    <label for="star5">★</label>
+                    <input type="radio" id="star4" name="rating" value="4" />
+                    <label for="star4">★</label>
+                    <input type="radio" id="star3" name="rating" value="3" />
+                    <label for="star3">★</label>
+                    <input type="radio" id="star2" name="rating" value="2" />
+                    <label for="star2">★</label>
+                    <input type="radio" id="star1" name="rating" value="1" />
+                    <label for="star1">★</label>
+                </div>
+            </div>
+            <div class="form-group"><textarea id="revText" placeholder="Расскажите о вашем опыте использования..."></textarea></div>
+            <button class="btn btn-primary" onclick="submitReview()" style="padding: 12px 32px; font-size: 15px;">Отправить отзыв</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'api/';
+    let prodId = new URLSearchParams(window.location.search).get('id');
+
+    async function fetchApi(ep, data=null) {
+        const o = { credentials:'include', headers:{} };
+        if(data) { o.method='POST'; o.headers['Content-Type']='application/json'; o.body=JSON.stringify(data); }
+        return (await fetch(API+ep, o)).json();
+    }
+
+    async function init() {
+        const p = await fetchApi(`products.php?id=${prodId}`);
+        if(!p) return document.getElementById('productDetail').innerHTML = '<p style="text-align:center; padding:40px; color:#888;">Товар не найден</p>';
+        
+        document.getElementById('productDetail').innerHTML = `
+            <div class="detail-img"><img src="${p.image_url}" alt="${p.name}"></div>
+            <div class="detail-info">
+                <div style="color:var(--pink); font-weight:600; margin-bottom:8px; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">${p.brand}</div>
+                <h1>${p.name}</h1>
+                <div class="meta">Объём: ${p.volume} | Категория: ${p.category}</div>
+                <div class="price">${p.price} ₽</div>
+                <div class="desc-block"><h3>Описание</h3><p>${p.description}</p></div>
+                <div class="desc-block"><h3>Применение</h3><p>${p.usage}</p></div>
+                <div class="desc-block"><h3>Состав</h3><p>${p.ingredients}</p></div>
+                <button class="btn btn-primary" style="width:100%; padding:16px; font-size:16px; margin-top:10px;" onclick="addToCart(${p.id})">Добавить в корзину</button>
+            </div>
+        `;
+        loadReviews();
+    }
+
+    async function loadReviews() {
+        const revs = await fetchApi(`reviews.php?product_id=${prodId}`);
+        const list = document.getElementById('reviewsList');
+        if (!revs || !revs.length) {
+            list.innerHTML = '<p style="color:#888; padding:20px; text-align:center;">Пока нет отзывов. Будьте первым!</p>';
+            return;
+        }
+        list.innerHTML = revs.map(r => `
+            <div class="review-item">
+                <div class="review-head">
+                    <b style="font-size:15px;">${r.name}</b>
+                    <div class="stars">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</div>
+                </div>
+                <p style="margin:0; color:#444; line-height:1.6;">${r.text}</p>
+                <small style="color:#999; margin-top:8px; display:block;">${new Date(r.created_at).toLocaleDateString('ru-RU')}</small>
+            </div>
+        `).join('');
+    }
+
+    async function submitReview() {
+        const name = document.getElementById('revName').value.trim();
+        const rating = document.querySelector('input[name="rating"]:checked').value;
+        const text = document.getElementById('revText').value.trim();
+        if(!name || !text) return alert('Заполните имя и отзыв');
+        
+        const res = await fetchApi('reviews.php?action=add', { product_id: prodId, name, rating: parseInt(rating), text });
+        if(res && res.ok) {
+            alert('Спасибо за отзыв!');
+            document.getElementById('revName').value = '';
+            document.getElementById('revText').value = '';
+            document.querySelector('input[name="rating"][value="5"]').checked = true;
+            loadReviews();
+        }
+    }
+
+    async function addToCart(id) {
+        const res = await fetchApi('cart.php?action=add', { product_id: id, qty: 1 });
+        if(res && res.ok) alert('Добавлено в корзину!');
+    }
+
+    init();
+</script>
+</body>
+</html>
